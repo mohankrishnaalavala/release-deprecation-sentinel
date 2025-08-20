@@ -16,7 +16,7 @@ Release & Deprecation Sentinel automates vendor monitoring with **Bright Data** 
 - Webhook API + simple HTML dashboard.
 
 ## 🛠 Architecture
-![architecture](docs/architecture.png)
+![architecture](docs/screenshots/architecture.png)
 
 ## 🚀 Quick Start
 1. Import workflow from `workflows/n8nworkflow.json` into your n8n cloud instance.
