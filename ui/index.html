@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Release & Deprecation Sentinel — Dashboard</title>
+  <link rel="stylesheet" href="styles.css">
+</head><body>
+  <header>
+    <h1>Release & Deprecation Sentinel</h1>
+    <div class="filters">
+      <label>Severity
+        <select id="sev"><option value="">All</option><option>high</option><option>medium</option><option>low</option></select>
+      </label>
+      <label>Vendor <input id="vendor" placeholder="e.g. Kubernetes"></label>
+      <label>Type
+        <select id="type"><option value="">All</option><option>release</option><option>deprecation</option><option>pricing</option><option>sla</option><option>status</option><option>changelog</option></select>
+      </label>
+      <button id="refresh">Refresh</button>
+    </div>
+  </header>
+  <main>
+    <table>
+      <thead><tr><th>Vendor</th><th>Product</th><th>Version</th><th>Type</th><th>Severity</th><th>Date</th><th>Owner</th><th>Link</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <p id="status"></p>
+  </main>
+  <footer><small>Data from your n8n endpoint.</small></footer>
+  <script src="app.js"></script>
+</body></html>

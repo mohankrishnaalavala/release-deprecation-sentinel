@@ -1,0 +1,722 @@
+{
+    "name": "Final",
+    "nodes": [
+      {
+        "parameters": {},
+        "type": "n8n-nodes-base.manualTrigger",
+        "typeVersion": 1,
+        "position": [
+          -1792,
+          720
+        ],
+        "id": "d34aaa38-2963-4099-8eaf-fb14889e6183",
+        "name": "When clicking ‘Execute workflow’"
+      },
+      {
+        "parameters": {
+          "jsCode": "// Emit one item per vendor (start small; add more later)\nreturn [\n  // Docker\n  { json: { vendor:\"Docker\", product:\"Engine\", kind:\"releases\", source:\"https://docs.docker.com/engine/release-notes/\" } },\n\n  // Kubernetes\n  { json: { vendor:\"Kubernetes\", product:\"Upstream\", kind:\"releases\", source:\"https://relnotes.k8s.io/\" } },\n  { json: { vendor:\"Kubernetes\", product:\"Deprecations\", kind:\"deprecations\", source:\"https://kubernetes.io/docs/reference/using-api/deprecation-guide/\" } },\n\n  // Helm\n  { json: { vendor:\"Helm\", product:\"Helm CLI\", kind:\"releases\", source:\"https://github.com/helm/helm/releases\" } },\n\n  // Argo\n  { json: { vendor:\"Argo\", product:\"ArgoCD\", kind:\"releases\", source:\"https://github.com/argoproj/argo-cd/releases\" } },\n  { json: { vendor:\"Argo\", product:\"Argo Workflows\", kind:\"releases\", source:\"https://github.com/argoproj/argo-workflows/releases\" } },\n\n  // Prometheus\n  { json: { vendor:\"Prometheus\", product:\"Prometheus\", kind:\"releases\", source:\"https://github.com/prometheus/prometheus/releases\" } },\n  { json: { vendor:\"Prometheus\", product:\"Alertmanager\", kind:\"releases\", source:\"https://github.com/prometheus/alertmanager/releases\" } },\n\n  // Grafana\n  { json: { vendor:\"Grafana\", product:\"Grafana OSS\", kind:\"releases\", source:\"https://github.com/grafana/grafana/releases\" } },\n  { json: { vendor:\"Grafana\", product:\"Loki\", kind:\"releases\", source:\"https://github.com/grafana/loki/releases\" } },\n\n  // HashiCorp\n  { json: { vendor:\"HashiCorp\", product:\"Terraform\", kind:\"releases\", source:\"https://github.com/hashicorp/terraform/releases\" } },\n  { json: { vendor:\"HashiCorp\", product:\"Vault\", kind:\"releases\", source:\"https://github.com/hashicorp/vault/releases\" } },\n  { json: { vendor:\"HashiCorp\", product:\"Consul\", kind:\"releases\", source:\"https://github.com/hashicorp/consul/releases\" } },\n\n  // CNCF\n  { json: { vendor:\"CNCF\", product:\"etcd\", kind:\"releases\", source:\"https://github.com/etcd-io/etcd/releases\" } },\n  { json: { vendor:\"CNCF\", product:\"Envoy\", kind:\"releases\", source:\"https://github.com/envoyproxy/envoy/releases\" } },\n\n  // Red Hat / OpenShift\n  { json: { vendor:\"Red Hat\", product:\"OpenShift\", kind:\"releases\", source:\"https://access.redhat.com/errata\" } },\n\n  // Istio\n  { json: { vendor:\"Istio\", product:\"Istio\", kind:\"releases\", source:\"https://github.com/istio/istio/releases\" } },\n\n  // Elastic\n  { json: { vendor:\"Elastic\", product:\"Elasticsearch\", kind:\"releases\", source:\"https://www.elastic.co/guide/en/elasticsearch/reference/current/es-release-notes.html\" } },\n  { json: { vendor:\"Elastic\", product:\"Kibana\", kind:\"releases\", source:\"https://www.elastic.co/guide/en/kibana/current/release-notes.html\" } }\n];\n\n"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -1520,
+          720
+        ],
+        "id": "ea4f1487-0cef-4fae-b262-26c535137e34",
+        "name": "Seed vendors (Code)"
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "jsCode": "const { vendor, product, kind='releases', source, html='' } = $json;\n\nconst text = html.replace(/<script[\\s\\S]*?<\\/script>/gi,' ')\n                 .replace(/<style[\\s\\S]*?<\\/style>/gi,' ')\n                 .replace(/<[^>]+>/g,' ')\n                 .replace(/\\s+/g,' ')\n                 .trim();\n\nfunction findVersion(t){\n  let m = t.match(/kubernetes\\s*v?(\\d+\\.\\d+(?:\\.\\d+)?)/i); if (m) return m[1];\n  m = t.match(/\\bv(\\d+\\.\\d+(?:\\.\\d+)?)/i); if (m) return m[1];\n  m = t.match(/\\b(\\d+\\.\\d+(?:\\.\\d+)?)(?:\\s+release|\\s+notes)?/i); if (m) return m[1];\n  return 'unknown';\n}\nconst version = findVersion(text);\n\nconst k = (kind||'').toLowerCase();\nconst type = k==='deprecations' ? 'deprecation'\n           : (['pricing','sla','status','changelog'].includes(k) ? k : 'release');\nconst severity = type==='deprecation' ? 'high' : (version.includes('.0') ? 'medium' : 'low');\nconst published_at = new Date().toISOString();\n\n// stable-ish dedupe when version unknown\nfunction h32(s){ let h=0; for(let i=0;i<s.length;i++){ h=((h<<5)-h)+s.charCodeAt(i); h|=0; } return (h>>>0).toString(36); }\nconst base = `${vendor}:${product}:${type}:${version}`.toLowerCase();\nconst dedupe_key = (version && version!=='unknown') ? base : `${base}:${h32(text.slice(0,300))}`;\n\nreturn {\n  json: {\n    vendor, product, type, version, published_at, severity,\n    summary: text.slice(0,400) + (text.length>400 ? '…' : ''),\n    diff: { added:[], removed:[], changed:[] },\n    links: [source],\n    dedupe_key\n  }\n};\n"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -848,
+          720
+        ],
+        "id": "13e71dd2-3c4a-45a4-a614-3181b77ba099",
+        "name": "Normalize (Code)"
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "jsCode": "// map owner by vendor:product (lowercased)\nconst map = {\n  \"kubernetes:upstream\": { team: \"SRE\",      slack: \"#releases\",  jira_project: \"SRE\"  },\n  \"github:actions\"    : { team: \"Platform\", slack: \"#platform\", jira_project: \"PLAT\" }\n  // add more mappings as needed\n};\n\nconst key = `${($json.vendor||'').toLowerCase()}:${($json.product||'').toLowerCase()}`;\nconst owner = map[key] || { team: \"Unassigned\", slack: \"#general\", jira_project: \"GEN\" };\n\n// due date by severity\nconst sevDays = { high: 14, medium: 30, low: 60 };\nconst days = sevDays[$json.severity] ?? 30;\nconst due_by = new Date(Date.now() + days * 86400 * 1000).toISOString().slice(0,10);\n\n// IMPORTANT: return ONE object (not an array)\nreturn { json: { ...$json, owner, due_by } };\n"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -640,
+          720
+        ],
+        "id": "2f3db257-3030-4561-acba-4337cb1b664a",
+        "name": "Owner & due date (Code)"
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "jsCode": "// Persist in workflow static data\nconst store = $getWorkflowStaticData('global');\nstore.events = store.events || {};\n\n// pick an id; prefer a stable id in your normalized object if you have one\nconst id = $json.id || $json.dedupe_key;\nconst is_new = !store.events[id];\n\n// write/update\nstore.events[id] = { ...$json, is_new };\n\n// keep newest 500 by published_at\nconst list = Object.values(store.events);\nif (list.length > 500) {\n  list.sort((a,b) => (b.published_at || '').localeCompare(a.published_at || ''));\n  const keep = new Set(list.slice(0,500).map(e => e.id || e.dedupe_key));\n  for (const k of Object.keys(store.events)) if (!keep.has(k)) delete store.events[k];\n}\n\n// return ONE item\nreturn { json: store.events[id] };\n"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -432,
+          720
+        ],
+        "id": "38b15641-545e-4a28-b2e7-94b24c8ca509",
+        "name": "Store (Workflow Static Data)"
+      },
+      {
+        "parameters": {
+          "path": "events",
+          "responseMode": "responseNode",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2.1,
+        "position": [
+          -1536,
+          1040
+        ],
+        "id": "2920d605-d1ac-4032-90be-22c4dc783203",
+        "name": "Webhook",
+        "webhookId": "4e3463f0-5fdb-4cb0-b918-f02bdbb5d575"
+      },
+      {
+        "parameters": {
+          "jsCode": "const store = $getWorkflowStaticData('global');\nlet events = Object.values(store.events || {});\n\n// drop dupes by stable key\nconst seen = new Set();\nevents = events.filter(e => {\n  const k = (e.dedupe_key || `${e.vendor}:${e.product}:${e.type}:${e.version}`).toLowerCase();\n  if (seen.has(k)) return false;\n  seen.add(k);\n  return true;\n});\n\n// newest first\nevents.sort((a,b) => (b.published_at||'').localeCompare(a.published_at||''));\n\nreturn [{ json: { updated_at: new Date().toISOString(), events } }];\n\n"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -1312,
+          1040
+        ],
+        "id": "233159b4-d69c-4588-b054-1d8f00691649",
+        "name": "Code (read from store)"
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{$json}}",
+          "options": {
+            "responseCode": 200,
+            "responseHeaders": {
+              "entries": [
+                {
+                  "name": "Access-Control-Allow-Origin",
+                  "value": "*"
+                },
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            }
+          }
+        },
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.4,
+        "position": [
+          -1088,
+          1040
+        ],
+        "id": "4e306ad3-aa8d-4159-a3e2-a33c47c53db5",
+        "name": "Respond to Webhook"
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "jsCode": "const seed = $items('Seed vendors (Code)')[$itemIndex].json;\n\n// Accept HTML from Bright Data / HTTP variations\nconst html = ($json.body ?? $json.data ?? $json.html ?? $json.content ?? '');\n\nreturn { json: { ...seed, html } };\n\n"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -1072,
+          720
+        ],
+        "id": "b72c53ba-bdc4-415f-8e62-17378bf50f63",
+        "name": "Carry seed (Code)"
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{$json}}",
+          "options": {
+            "responseHeaders": {
+              "entries": [
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "name": "Access-Control-Allow-Origin",
+                  "value": "*"
+                }
+              ]
+            }
+          }
+        },
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.4,
+        "position": [
+          -416,
+          1024
+        ],
+        "id": "c90d74bd-abf0-4ded-ace4-1e7aea7cc8b6",
+        "name": "Respond to Webhook1"
+      },
+      {
+        "parameters": {
+          "path": "debug",
+          "responseMode": "responseNode",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2.1,
+        "position": [
+          -800,
+          1024
+        ],
+        "id": "cd08963c-86b8-42e5-9c4a-80bcb4cd605a",
+        "name": "debug(webhook)",
+        "webhookId": "a8773dea-b067-446d-9c2f-d0e2b6bddd94"
+      },
+      {
+        "parameters": {
+          "jsCode": "const store = $getWorkflowStaticData('global');\nconst events = Object.values(store.events || {});\nreturn [{ json: { count: events.length, sample_ids: events.slice(0,5).map(e=>e.id) } }];\n"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -608,
+          1024
+        ],
+        "id": "c1325b9f-7036-4b99-ba7d-e0de8a66e3e9",
+        "name": "Code (connect from Webhook)"
+      },
+      {
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "hours",
+                "hoursInterval": 10
+              }
+            ]
+          }
+        },
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.2,
+        "position": [
+          -1792,
+          544
+        ],
+        "id": "8b9ee21e-949b-4f60-bea4-3acb0c4a319c",
+        "name": "Schedule Trigger"
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 2
+            },
+            "conditions": [
+              {
+                "id": "81a1fd08-9ea6-4df6-b5cd-54257f807994",
+                "leftValue": "={{$json.is_new}}",
+                "rightValue": "={{true}}",
+                "operator": {
+                  "type": "string",
+                  "operation": "equals",
+                  "name": "filter.operator.equals"
+                }
+              },
+              {
+                "id": "b37dbfa1-29d3-4c53-9065-b3e8637f99c3",
+                "leftValue": "={{$json.severity}}",
+                "rightValue": "{{[\"low\",\"medium\",\"high\"]}}",
+                "operator": {
+                  "type": "string",
+                  "operation": "equals",
+                  "name": "filter.operator.equals"
+                }
+              }
+            ],
+            "combinator": "or"
+          },
+          "looseTypeValidation": true,
+          "options": {}
+        },
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          -240,
+          720
+        ],
+        "id": "2bd19c01-bd9e-4afa-b4a7-2da5c3b335b1",
+        "name": "If"
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "https://hooks.slack.com/services/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",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={\n  \"blocks\": [\n    { \"type\":\"header\",\n      \"text\": {\"type\":\"plain_text\",\"text\":\"[{{$json.severity.toUpperCase()}}] {{$json.vendor}} {{$json.product}} {{$json.type}} {{$json.version}}\"} },\n    { \"type\":\"section\",\n      \"text\": {\"type\":\"mrkdwn\",\"text\":\"*Impact:* {{$json.ai?.impact || $json.summary}}\\n*Owner:* {{$json.owner.team}} • *Due:* {{$json.due_by}}\"} },\n    { \"type\":\"context\",\n      \"elements\":[{\"type\":\"mrkdwn\",\"text\":\"<{{$json.links[0]}}|Release notes>\"}] }\n  ]\n}\n",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          -80,
+          512
+        ],
+        "id": "de9b6776-cba3-464a-b8b2-20b6b24dea7c",
+        "name": "HTTP Request"
+      },
+      {
+        "parameters": {
+          "zone": {
+            "__rl": true,
+            "mode": "list",
+            "value": "web_unlocker1"
+          },
+          "country": {
+            "__rl": true,
+            "mode": "list",
+            "value": "us"
+          },
+          "url": "={{$json.source}}",
+          "requestOptions": {}
+        },
+        "type": "@brightdata/n8n-nodes-brightdata.brightData",
+        "typeVersion": 1,
+        "position": [
+          -1280,
+          720
+        ],
+        "id": "1195312e-9f35-4f76-983e-8928bac05cd1",
+        "name": "Access and extract data from a specific URL",
+        "credentials": {
+          "brightdataApi": {
+            "id": "V38B1PwdFyf1SQU3",
+            "name": "BrightData account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "options": {}
+        },
+        "type": "n8n-nodes-base.splitInBatches",
+        "typeVersion": 3,
+        "position": [
+          96,
+          704
+        ],
+        "id": "94a5111f-8e82-4231-8d47-72420076431a",
+        "name": "Loop Over Items"
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "jsCode": "let store = {};\n\nif (!store.events) store.events = {};\n\nconst ev = $json;\nconst key = ev.dedupe_key ||\n            `${ev.vendor || 'unknown'}:${ev.product || 'unknown'}:${ev.type || 'unknown'}:${ev.version || 'unknown'}`.toLowerCase();\n\nconst previous = store.events[key] || {};\n\nstore.events[key] = {\n  ...previous,\n  ...ev,\n  is_enriched: true,\n  last_enriched_at: new Date().toISOString(),\n};\n\nreturn { json: store.events[key] };"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1376,
+          480
+        ],
+        "id": "f3acdd45-56d2-484f-94ee-2d74cc5bb2c8",
+        "name": "store enriched results"
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "jsCode": "let raw =\n  $json.output ||      // when Response Format=JSON some n8n builds put it here\n  $json.text ||        // or here\n  $json || '';\n\nraw = String(raw).trim()\n  .replace(/^```(?:json)?\\s*/i, '')\n  .replace(/```$/i, '');\n\nlet ai;\ntry {\n  ai = typeof raw === 'string' ? JSON.parse(raw) : raw;\n} catch (e) {\n  ai = { parse_error: e.message, raw: raw.slice(0, 1000) };\n}\nreturn { json: { ...$json, ai } };\n"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1152,
+          480
+        ],
+        "id": "4ad501c3-4774-4ee3-8f24-6df8d12d1286",
+        "name": "Parse the model result"
+      },
+      {
+        "parameters": {
+          "promptType": "define",
+          "text": "=Event:\n{{ JSON.stringify($json, null, 2) }}\n\nUse only these fields: vendor, product, type, version, severity, summary, page_text.\npage_text is already cleaned and capped; do not fetch any URL.\nReturn a single JSON with keys:\n- impact: \"low\" | \"medium\" | \"high\"\n- risk: \"low\" | \"medium\" | \"high\"\n- areas: string[]\n- tasks: {title, why, owner_team, due_days}[]\nKeep arrays non‑empty; if unknown, return best‑effort short strings.\nOnly return JSON and STOP.\n",
+          "options": {
+            "systemMessage": "You are a DevOps/SRE release copilot.\n\nReturn ONLY one JSON object with keys:\n- impact (string)\n- risk (\"low\" | \"medium\" | \"high\")\n- areas (array of strings)\n- tasks (array of {title, why, owner_team, due_days})\n\nTools available:\n1) HTTP Request1 — fetch a URL exactly with {\"url\":\"https://example.com/\"}.\n2) lean_page_text — clean fetched HTML to plain text using {\"html\":\"<body>\"}.\n\nProcedure:\n- Read the Event JSON (contains vendor/product/type/version/severity and url).\n- If url is present, call HTTP Request1 once to fetch the body.\n- Then call lean_page_text with {\"html\":\"<the response body>\"} to get clean text.\n- Use that text to infer impact, risk, areas, and 2–3 concrete tasks.\n- Keep arrays non-empty; return best-effort strings if needed.\n- Respond with ONLY the final JSON object and STOP.\n"
+          }
+        },
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "typeVersion": 2.2,
+        "position": [
+          768,
+          480
+        ],
+        "id": "be6e1bd5-0008-442e-9767-a6223259bd8a",
+        "name": "AI Agent"
+      },
+      {
+        "parameters": {
+          "model": {
+            "__rl": true,
+            "value": "gpt-4o-mini-2024-07-18",
+            "mode": "list",
+            "cachedResultName": "gpt-4o-mini-2024-07-18"
+          },
+          "options": {
+            "maxTokens": 8192,
+            "responseFormat": "text",
+            "temperature": 0.2
+          }
+        },
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "typeVersion": 1.2,
+        "position": [
+          768,
+          752
+        ],
+        "id": "1b0b02ac-fac2-41f6-8144-22d4faa1ec0a",
+        "name": "OpenAI Chat Model",
+        "credentials": {
+          "openAiApi": {
+            "id": "sSK1VmmlHNv832fn",
+            "name": "OpenAi account 2"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "jsCode": "const ev = $json;\n\nlet url =\n  ev.fetch_url ||\n  (Array.isArray(ev.links) && ev.links[0]) ||\n  ev.link ||\n  ev.source ||\n  '';\n\nif (url && !/^https?:\\/\\//i.test(url)) {\n  url = 'https://' + url.replace(/^\\/*/, '');\n}\n\nreturn { json: { ...ev, fetch_url: url } };\n"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          368,
+          720
+        ],
+        "id": "ca87506c-5238-4339-8a7a-5ad3a7cefc85",
+        "name": "fetch_url (Code)"
+      },
+      {
+        "parameters": {
+          "url": "={{$json.url}}",
+          "options": {
+            "allowUnauthorizedCerts": true,
+            "response": {
+              "response": {
+                "neverError": true,
+                "responseFormat": "text",
+                "outputPropertyName": "text"
+              }
+            },
+            "proxy": "http://brd-customer-hl_737fe841-zone-datacenter_proxy1:w2g21f3fdgyl@brd.superproxy.io:33335",
+            "timeout": 30000
+          }
+        },
+        "type": "n8n-nodes-base.httpRequestTool",
+        "typeVersion": 4.2,
+        "position": [
+          912,
+          752
+        ],
+        "id": "dcb27cf2-b444-4457-bf60-268ee95d828b",
+        "name": "HTTP Request1"
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "jsCode": "const ev = $json;\n\n// Prefer ev.fetch_url, else first link, else empty\nlet url = ev.fetch_url || (Array.isArray(ev.links) && ev.links[0]) || '';\nurl = url || ''; // force string\n\nreturn {\n  json: {\n    vendor: ev.vendor || '',\n    product: ev.product || '',\n    type: ev.type || '',\n    version: ev.version || '',\n    severity: ev.severity || '',\n    // keep summary small – the HTML page text will carry the real info\n    summary: (ev.summary || '').slice(0, 800),\n    url\n  }\n};\n"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          560,
+          720
+        ],
+        "id": "b918fb32-d465-4310-ab70-d5c447d0eddc",
+        "name": "trim_event_for_ai"
+      }
+    ],
+    "pinData": {
+      "Schedule Trigger": [
+        {
+          "json": {
+            "timestamp": "2025-08-20T12:17:09.002-05:00",
+            "Readable date": "August 20th 2025, 12:17:09 pm",
+            "Readable time": "12:17:09 pm",
+            "Day of week": "Wednesday",
+            "Year": "2025",
+            "Month": "August",
+            "Day of month": "20",
+            "Hour": "12",
+            "Minute": "17",
+            "Second": "09",
+            "Timezone": "America/Chicago (UTC-05:00)"
+          }
+        }
+      ]
+    },
+    "connections": {
+      "When clicking ‘Execute workflow’": {
+        "main": [
+          [
+            {
+              "node": "Seed vendors (Code)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Seed vendors (Code)": {
+        "main": [
+          [
+            {
+              "node": "Access and extract data from a specific URL",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Normalize (Code)": {
+        "main": [
+          [
+            {
+              "node": "Owner & due date (Code)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Owner & due date (Code)": {
+        "main": [
+          [
+            {
+              "node": "Store (Workflow Static Data)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "Code (read from store)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Code (read from store)": {
+        "main": [
+          [
+            {
+              "node": "Respond to Webhook",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Carry seed (Code)": {
+        "main": [
+          [
+            {
+              "node": "Normalize (Code)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "debug(webhook)": {
+        "main": [
+          [
+            {
+              "node": "Code (connect from Webhook)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Code (connect from Webhook)": {
+        "main": [
+          [
+            {
+              "node": "Respond to Webhook1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Schedule Trigger": {
+        "main": [
+          [
+            {
+              "node": "Seed vendors (Code)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Store (Workflow Static Data)": {
+        "main": [
+          [
+            {
+              "node": "If",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "If": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "HTTP Request",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          []
+        ]
+      },
+      "Access and extract data from a specific URL": {
+        "main": [
+          [
+            {
+              "node": "Carry seed (Code)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Loop Over Items": {
+        "main": [
+          [],
+          [
+            {
+              "node": "fetch_url (Code)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Parse the model result": {
+        "main": [
+          [
+            {
+              "node": "store enriched results",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "AI Agent": {
+        "main": [
+          [
+            {
+              "node": "Parse the model result",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "OpenAI Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "store enriched results": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "fetch_url (Code)": {
+        "main": [
+          [
+            {
+              "node": "trim_event_for_ai",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "HTTP Request1": {
+        "ai_tool": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "trim_event_for_ai": {
+        "main": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "active": true,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "ffd804ec-3c04-4763-a686-a6d824b25861",
+    "meta": {
+      "instanceId": "512f98ff3ca0c806cd570317ff9625afabdaec76158c0f1a01263c115de1619a"
+    },
+    "id": "xsS74vwwOCCVFFfs",
+    "tags": []
+  }
