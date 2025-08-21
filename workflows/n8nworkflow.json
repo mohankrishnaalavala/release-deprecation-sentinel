@@ -264,7 +264,7 @@
       {
         "parameters": {
           "method": "POST",
-          "url": "https://hooks.slack.com/services/T099U9KHEP6/B09AKK7HVEF/test",
+          "url": "https://hooks.slack.com/services/test/test/test",
           "sendBody": true,
           "specifyBody": "json",
           "jsonBody": "={\n  \"blocks\": [\n    { \"type\":\"header\",\n      \"text\": {\"type\":\"plain_text\",\"text\":\"[{{$json.severity.toUpperCase()}}] {{$json.vendor}} {{$json.product}} {{$json.type}} {{$json.version}}\"} },\n    { \"type\":\"section\",\n      \"text\": {\"type\":\"mrkdwn\",\"text\":\"*Impact:* {{$json.ai?.impact || $json.summary}}\\n*Owner:* {{$json.owner.team}} • *Due:* {{$json.due_by}}\"} },\n    { \"type\":\"context\",\n      \"elements\":[{\"type\":\"mrkdwn\",\"text\":\"<{{$json.links[0]}}|Release notes>\"}] }\n  ]\n}\n",
@@ -422,7 +422,7 @@
                 "outputPropertyName": "text"
               }
             },
-            "proxy": "http://brd-customer-hl_737fe841-zone-datacenter_proxy1:test@brd.superproxy.io:33335",
+            "proxy": "http://brd-customer-test-zone-datacenter_proxy1:test@brd.superproxy.io:33335",
             "timeout": 30000
           }
         },
