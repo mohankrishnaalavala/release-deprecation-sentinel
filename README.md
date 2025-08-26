@@ -21,6 +21,9 @@ Release & Deprecation Sentinel automates vendor monitoring with **Bright Data** 
 ## Workflow
 ![n8nworkflow](docs/screenshots/n8nworkflow.png)
 
+## Dashboard
+![Dashboard](docs/screenshots/Dashboard.png)
+
 ## 🚀 Quick Start
 1. Import workflow from `workflows/n8nworkflow.json` into your n8n cloud instance.
 2. Configure:
