@@ -7,7 +7,7 @@ Keeping track of Kubernetes, Docker, HashiCorp, Elastic, and dozens of vendor up
 Missed deprecations can cause outages.  
 Release & Deprecation Sentinel automates vendor monitoring with **Bright Data** and **n8n**.
 
-## 🎯 Features
+## Features
 - Automated vendor release/deprecation fetching (18+ vendors).
 - Bright Data proxy integration for reliable fetching.
 - Normalize + deduplicate vendor data.
@@ -24,7 +24,7 @@ Release & Deprecation Sentinel automates vendor monitoring with **Bright Data** 
 ## Dashboard
 ![Dashboard](docs/screenshots/Dashboard.png)
 
-## 🚀 Quick Start
+## Quick Start
 1. Import workflow from `workflows/n8nworkflow.json` into your n8n cloud instance.
 2. Configure:
    - Bright Data proxy credentials.
@@ -32,7 +32,7 @@ Release & Deprecation Sentinel automates vendor monitoring with **Bright Data** 
 3. Run manually or set up Scheduler (6h default).
 4. Visit the webhook endpoint or `ui/index.html` for the dashboard.
 
-## 📊 Example Slack Alert
+## Example Slack Alert
 [LOW] Elastic Kibana release unknown
 Impact:
 Owner: Unassigned • Due: 2025-10-19
